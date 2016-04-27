@@ -1,0 +1,69 @@
+<?php
+
+/**
+ * @file
+ * Requirements, install, uninstall functions for sharebar module.
+ */
+
+/**
+ * Implements hook_requirements().
+ */
+function sharebar_requirements($phase) {
+  $errors = array();
+
+  if ($phase == 'install') {
+    if (!function_exists('libraries_get_path')) {
+      module_load_include('module', 'libraries');
+    }
+    $path = libraries_get_path('colorpicker') ? libraries_get_path('colorpicker') : 'sites/all/libraries/colorpicker';
+    // The first file we check is the 3rd party integration. Without this file,
+    // the module will not work. Other files are also required, but the
+    // assumption is made that if they got this file, they will have gotten
+    // all the other files. This is done to keep code relatively streamlined.
+    if (!is_file($path . '/js/colorpicker.js')) {
+      $t = get_t();
+      $errors['jquery_colorpicker_missing_files'] = array(
+        'title' => $t('Required files missing'),
+        'description' => $t(
+          '<h2>Colorpicker not installed</h2><br />You are missing the required files for the Colorpicker to work. Please download the colorpicker.zip from !eyecon and unzip the CSS, JS and IMAGES folders to !colorpicker_path. After doing this, confirm that the following path exists: !colorpicker_js_path.',
+          array(
+            '!eyecon' => l(
+              'http://www.eyecon.ro/colorpicker/',
+              'http://www.eyecon.ro/colorpicker/',
+              array(
+                'external' => TRUE,
+              )
+            ),
+            '!colorpicker_path' => '<strong>' . $path . '</strong>',
+            '!colorpicker_js_path' => '<strong>' . $path . '/js/colorpicker.js</strong>',
+          )
+        ),
+        'severity' => REQUIREMENT_ERROR,
+      );
+    }
+  }
+
+  return $errors;
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function sharebar_uninstall() {
+  // Delete our module's variable from the variables table.
+  variable_del('sharebar_buttons');
+  variable_del('sharebar_bar_horizontal');
+  variable_del('sharebar_bar_credit');
+  variable_del('sharebar_bar_toptoffset');
+  variable_del('sharebar_bar_position');
+  variable_del('sharebar_bar_leftoffset');
+  variable_del('sharebar_bar_rightoffset');
+  variable_del('sharebar_bar_width');
+  variable_del('sharebar_bar_swidth');
+  variable_del('sharebar_bar_id');
+  variable_del('sharebar_bar_idhorizontal');
+  variable_del('sharebar_bar_onblock');
+  variable_del('sharebar_bar_twitter_username');
+  variable_del('sharebar_bar_background');
+  variable_del('sharebar_bar_border');
+}

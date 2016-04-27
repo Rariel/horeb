@@ -1,0 +1,270 @@
+<?php
+
+/**
+ * @file
+ * Various module information.
+ */
+
+define('SHAREBAR_CREDIT_URL', 'http://www.socialseo.com/drupal-development/sharebar-module.html');
+
+/**
+ * Implements hook_permission().
+ */
+function sharebar_permission() {
+  $perms = array(
+    'access sharebar administer' => array(
+      'title' => t('Administer ShareBar'),
+      'restrict access' => TRUE,
+    ),
+  );
+  return $perms;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function sharebar_menu() {
+  // Administration pages.
+  $items['admin/config/sharebar'] = array(
+    'title' => 'ShareBar',
+    'description' => 'Configure shareBar',
+    'position' => 'left',
+    'page callback' => 'sharebar_admin_menu_block_page',
+    'access arguments' => array('access sharebar administer'),
+    'file' => 'sharebar.admin.inc',
+  );
+  $items['admin/config/sharebar/settings'] = array(
+    'title' => 'Configure shareBar',
+    'description' => 'Configure shareBar',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sharebar_settings'),
+    'access callback' => 'user_access',
+    'access arguments' => array('access sharebar administer'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'sharebar.admin.inc',
+    'weight' => -10,
+  );
+  $items['admin/config/sharebar/add'] = array(
+    'title' => 'Add New Button',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sharebar_addbutton'),
+    'access callback' => 'user_access',
+    'access arguments' => array('access sharebar administer'),
+    'type' => MENU_CALLBACK,
+    'file' => 'sharebar.admin.inc',
+  );
+  $items['admin/config/sharebar/edit'] = array(
+    'title' => 'Edit Button',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sharebar_addbutton'),
+    'access callback' => 'user_access',
+    'access arguments' => array('access sharebar administer'),
+    'type' => MENU_CALLBACK,
+    'file' => 'sharebar.admin.inc',
+  );
+  $items['admin/config/sharebar/del'] = array(
+    'title' => 'Delete Button',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sharebar_button_confirm_delete'),
+    'access callback' => 'user_access',
+    'access arguments' => array('access sharebar administer'),
+    'type' => MENU_CALLBACK,
+    'file' => 'sharebar.admin.inc',
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function sharebar_theme() {
+  return array(
+    'sharebar_buttons_table' => array(
+      'file' => 'sharebar.admin.inc',
+      'variables' => array('var' => ''),
+    ),
+  );
+}
+
+/**
+ * Implements hook_init().
+ */
+function sharebar_init() {
+  // Do not enable sharebar styles and js on admin pages.
+  if (arg(0) != 'admin') {
+    if (variable_get('sharebar_bar_onblock', TRUE)) {
+      drupal_add_css(drupal_get_path('module', 'sharebar') . '/css/sharebar.css');
+      drupal_add_js(drupal_get_path('module', 'sharebar') . '/js/sharebar.js');
+      // If horizontal is true then display it.
+      if (variable_get('sharebar_bar_horizontal', TRUE)) {
+        $hori = 'TRUE';
+        $width = variable_get('sharebar_bar_width', 1000);
+        $swidth = variable_get('sharebar_bar_swidth', 75);
+        $position = variable_get('sharebar_bar_position', 'none');
+        $leftoffset = variable_get('sharebar_bar_leftoffset', 10);
+        $rightoffset = variable_get('sharebar_bar_rightoffset', 10);
+        $sharebarx = variable_get('sharebar_bar_idhorizontal', 'sharebarx');
+        drupal_add_js('jQuery(document).ready(function($) { $(\'' . $sharebarx . '\').sharebar({horizontal:\'' . $hori . '\',swidth:\'' . $swidth . '\',minwidth:' . $width . ',position:\'' . $position . '\',leftOffset:' . $leftoffset . ',rightOffset:' . $rightoffset . '}); });', 'inline');
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function sharebar_block_info() {
+  $blocks = array();
+
+  if (variable_get('sharebar_bar_onblock', TRUE)) {
+    $blocks['sharebar'] = array(
+      'info' => t('Sharebar'),
+      'cache' => DRUPAL_CACHE_CUSTOM,
+    );
+  }
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function sharebar_block_view($delta = '') {
+  $block = array();
+
+  if (variable_get('sharebar_bar_onblock', TRUE)) {
+    switch ($delta) {
+      case 'sharebar':
+        $block['content'] = sharebar_onblock();
+        break;
+    }
+  }
+  return $block;
+}
+
+/**
+ * Custom function to assemble renderable array for block content.
+ * @return array
+ *   returns a renderable array of block content.
+ */
+function sharebar_onblock() {
+  $strh = '';
+  $sbg = variable_get('sharebar_bar_background', 'FFFFFF');
+  if ($sbg != 'transparent') {
+    $sbg = "#" . $sbg;
+  }
+  $sborder = variable_get('sharebar_bar_border', 'CCCCCC');
+  if ($sborder != 'transparent') {
+    $sborder = "#" . $sborder;
+  }
+  $credit = variable_get('sharebar_bar_credit', TRUE);
+  $margin_top = variable_get('sharebar_bar_toptoffset', 0);
+
+  // $cls = 'sharebar';
+  $cls = variable_get('sharebar_bar_id', 'sharebar');
+  $settings['cls'] = "#" . $cls;
+  drupal_add_js(array('sharebar' => $settings), 'setting');
+  $sty = '';
+
+  $str = &drupal_static(__FUNCTION__, NULL);
+  if (!isset($str)) {
+    if (($cache = cache_get("sharebar_str")) && !empty($cache->data)) {
+      $str = $cache->data;
+    }
+    else {
+      $str = '<ul id="' . $cls . '" style="background:' . $sbg . ';border-style:' . variable_get('sharebar_bar_border_style', 'solid') . ';border-color:' . $sborder . ';border-width:' . variable_get('sharebar_bar_border_width', '1px') . ';margin-top:' . $margin_top . 'px;' . $sty . '">';
+      $buttons = unserialize(variable_get('sharebar_buttons', sharebar_buttons_def()));
+      if (is_array($buttons) && count($buttons)) {
+        usort($buttons, "sharebar_cmp_up");
+        foreach ($buttons as $key => $value) {
+          if ($value->enabled) {
+            $str .= '<li>' . sharebar_bar_filter($value->big_button, drupal_get_title()) . '</li>';
+          }
+          if ($value->enabled && variable_get('sharebar_bar_horizontal', TRUE)) {
+            $strh .= '<li>' . sharebar_bar_filter($value->small_button, drupal_get_title()) . '</li>';
+          }
+        }
+      }
+      if ($credit) {
+        $str .= '<li class="credit"><a href="' . SHAREBAR_CREDIT_URL . '" target="_blank">Sharebar</a></li>';
+      }
+      $str .= '</ul>';
+      if (variable_get('sharebar_bar_horizontal', TRUE)) {
+        $hrcls = variable_get('sharebar_bar_idhorizontal', 'sharebarx');
+        $settings['hrcls'] = "#" . $hrcls;
+        drupal_add_js(array('sharebar' => $settings), 'setting');
+        $str .= '<ul id="' . $hrcls . '">' . $strh . '</ul>';
+      }
+
+      cache_set("sharebar_str", $str);
+    }
+  }
+
+  return $str;
+}
+
+
+/**
+ * Function to calculate higher weight & move up.
+ */
+function sharebar_cmp_up($a, $b) {
+  return ($a->weight > $b->weight);
+}
+
+/**
+ * Function to calculate lower weight & move down.
+ */
+function sharebar_cmp_down($a, $b) {
+  return ($a->weight < $b->weight);
+}
+
+/**
+ * Replaces dynamic data with their values.
+ */
+function sharebar_bar_filter($input, $title = '') {
+  $name = '';
+  $sitename = variable_get('site_name', '');
+  global $base_url;
+  global $language;
+
+  if (arg(0) == 'node' && is_numeric(arg(1))) {
+    $node = node_load(arg(1));
+    if ($node != FALSE) {
+      $title = $node->title;
+      $name = $node->name;
+    }
+  }
+  else {
+    $node = '';
+  }
+
+  $path = isset($_GET['q']) ? $_GET['q'] : '<front>';
+  $currenturl = url($path, array('absolute' => TRUE));
+  $code = array('[title]',
+    '[url]',
+    '[author]',
+    '[twitter]');
+  $values = array($title,
+    $currenturl,
+    $name,
+    variable_get('sharebar_bar_twitter_username', $sitename));
+  $result = str_replace($code, $values, $input);
+  // Now do some serious token replacement.
+  if (module_exists('token')) {
+    $variables = array();
+    $variables['node'] = $node;
+    $result = token_replace($result, $variables, array(
+      'language' => $language,
+      'sanitize' => FALSE,
+      'clear' => TRUE));
+  }
+  return $result;
+}
+
+/**
+ * Function to defines default values.
+ */
+function sharebar_buttons_def() {
+  module_load_include('inc', 'sharebar', 'sharebar.var');
+  $def = _sharebar_buttons_def();
+  return $def;
+}

@@ -1,0 +1,16 @@
+name = ShareBar
+description = Provides the ability to add social media sharing icons to pages within your website
+core = 7.x
+
+files[] = sharebar.install
+files[] = sharebar.module
+files[] = sharebar.admin.inc
+
+dependencies[] = libraries
+
+; Information added by Drupal.org packaging script on 2014-11-09
+version = "7.x-2.x-dev"
+core = "7.x"
+project = "sharebar"
+datestamp = "1415564582"
+
